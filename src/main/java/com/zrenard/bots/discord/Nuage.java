@@ -9,18 +9,15 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
 import javax.security.auth.login.LoginException;
 import java.io.*;
-import java.lang.reflect.Array;
-import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
-import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 // TODO : Quote with images
 // TODO : Reminder (anniversaire ou juste chrono ?)
@@ -38,19 +35,17 @@ public class Nuage extends ListenerAdapter {
     private static final String VERSION = "Alpha (et ça veut pas dire supérieure)";
     private static List<String> quotes;
     private static HashMap<String,String> simpleCommands;
-    //private static List<String> complexCommands;
     //private static Map<String,Map> query; ?
-
-    private static ArrayList<String> queries =
+    private static final ArrayList<String> queries =
             new ArrayList<>(List.of("(.*)((hello)|(salut)) (@)?${botname}(.*)"));
-    private static ArrayList<ArrayList<String>> responsesApplication =
+    private static final ArrayList<ArrayList<String>> responsesApplication =
             new ArrayList<>(List.of(new ArrayList<>(List.of("zRenard#0668","*"))));
-    private static ArrayList<ArrayList<String>> responses =
+    private static final ArrayList<ArrayList<String>> responses =
             new ArrayList<>(List.of(new ArrayList<>(List.of("Salut ${name} ! Mon concepteur d'amour","Hello ${name} ça va ?"))));
     private static Properties prop = new Properties();
     private int statsQuotes = 0;
-    LocalDateTime dateStart = LocalDateTime.now();
-    Random ran = new Random();
+    private static LocalDateTime dateStart = LocalDateTime.now();
+    private static Random ran = new Random();
     private static String token;
 
     public static void main(String[] args) throws LoginException {
@@ -72,7 +67,7 @@ public class Nuage extends ListenerAdapter {
         // Load Quotes
         quotes = loadFile(prop.getProperty("quote_filename"));
         // Load simple commands
-        simpleCommands = new HashMap<String, String>((Map) loadProperties(prop.getProperty("simple_command_filename")));
+        simpleCommands = new HashMap<>((Map) loadProperties(prop.getProperty("simple_command_filename")));
         // Load complex commands
         loadQueriesFile(prop.getProperty("complex_command_filename"));
 
@@ -102,9 +97,6 @@ public class Nuage extends ListenerAdapter {
         HashMap<String,String> localVariables = loadVariable(event);
         localVariables.put("${listofcommand}",simpleCommands.keySet().stream().sorted().collect(Collectors.toList()).toString());
 
-        // System.out.println("localVariables : " + localVariables);
-        // System.out.println("simpleCommands : " + simpleCommands);
-
         // Replace variable in simpleCommand
         Map<String, String> analyzedSimpleCommands = simpleCommands.entrySet().stream()
                 .collect(Collectors.toMap(x -> "!"+x.getKey(), x ->
@@ -114,10 +106,8 @@ public class Nuage extends ListenerAdapter {
                         .apply(x.getValue())
                 ));
 
-        // System.out.println("analyzedSimpleCommands : " + analyzedSimpleCommands);
-
         // Check if the message sent belong to a command
-        if (!analyzedSimpleCommands.entrySet().stream().filter(x -> messageContent.toLowerCase().startsWith(x.getKey().toLowerCase())).collect(Collectors.toList()).isEmpty()) {   // .containsKey(messageContent)) {
+        if (analyzedSimpleCommands.entrySet().stream().anyMatch(x -> messageContent.toLowerCase().startsWith(x.getKey().toLowerCase()))) {
             event.getMessage().reply(analyzedSimpleCommands.get(messageContent.split(" ")[0])).queue();
         }
 
@@ -144,25 +134,6 @@ public class Nuage extends ListenerAdapter {
             }
         }
 
-
-
-/*
-//        List<String> analysedComplexCommands = complexCommands.stream().map(
-//                x -> localVariables.entrySet().stream()
-//                        .map(entryToReplace -> (Function<String, String>) s -> s.replace(entryToReplace.getKey(), entryToReplace.getValue()))
-//                        .reduce(Function.identity(), Function::andThen)
-//                        .apply(x)
-//        ).collect(Collectors.toList());
-
-        List<String> commandToFind = analysedComplexCommands.stream().map(s -> s.split("\\|")[0]).collect(Collectors.toList());
-
-        if (commandToFind.contains(event.getMessage().getContentRaw())) {
-            int commandFound = commandToFind.indexOf(event.getMessage().getContentRaw());
-//            String response = commandToFind.get(commandFound);
-            String response = analysedComplexCommands.get(commandFound).split("\\|")[2];
-            event.getMessage().reply(response).queue();
-*/
-
         if (messageContent.equals("!quote")||messageContent.equals("!cite")) {
             if (quotes.isEmpty()) {
                 event.getMessage().reply("Oauis bah tu est gentil "+event.getAuthor().getName() +" mais pas encore !").queue();
@@ -173,12 +144,8 @@ public class Nuage extends ListenerAdapter {
             return;
         }
 
-//        if (event.getMessage().getContentRaw().equals("!hello")) {
-//            event.getMessage().reply("Bonjour "+event.getAuthor().getName() +" ca va ?").queue();
-//        }
-
         if (messageContent.equals("!reload")) {
-            if (isDesigner(event.getAuthor())) { // TODO: A list of Admin
+            if (isDesigner(event.getAuthor())|| isAdmin(event.getAuthor())) {
                 prop = loadProperties("settings.properties");
                 quotes = loadFile(prop.getProperty("quote_filename"));
                 loadQueriesFile(prop.getProperty("complex_command_filename"));
@@ -194,21 +161,6 @@ public class Nuage extends ListenerAdapter {
             }
         }
 
-/*
-        if (event.getMessage().isMentioned(event.getJDA().getSelfUser())) {
-            event.getMessage().reply("Bonjour "+event.getAuthor().getName() +" tu me parle ?").queue();
-            return;
-        }
-*/
-
-        if (messageContent.equals("!up") || messageContent.equals("!uptime")) {
-            event.getMessage().reply("Je suis up depuis "+
-                    ChronoUnit.DAYS.between(dateStart, now) + " jours " +
-                    ChronoUnit.HOURS.between(dateStart, now)%24 + " heures " +
-                    ChronoUnit.MINUTES.between(dateStart, now)%60 + " minutes " +
-                    ChronoUnit.SECONDS.between(dateStart, now)%60 + " secondes").queue();
-            return;
-        }
         if (messageContent.equals("!stats")) {
             String response = "Je suis en version "+ VERSION+"\n";
             response = response.concat("Je me suis demarer "+ dateStart.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)+"\n");
@@ -222,13 +174,13 @@ public class Nuage extends ListenerAdapter {
 
     }
 
-    private static Properties loadProperties(String properties_filename) {
+    private static Properties loadProperties(String filename) {
         Properties prop = new Properties();
         // Load Properties
-        try (InputStream input = new FileInputStream(properties_filename)) {
-            prop.load(new InputStreamReader(input, Charset.forName("UTF-8")));
+        try (InputStream input = new FileInputStream(filename)) {
+            prop.load(new InputStreamReader(input, StandardCharsets.UTF_8));
         } catch (FileNotFoundException e) {
-            System.err.println("ERROR : File not found "+properties_filename);
+            System.err.println("ERROR : File not found "+filename);
         } catch (IOException e) {
             System.err.println(e.getMessage());
         }
@@ -239,17 +191,28 @@ public class Nuage extends ListenerAdapter {
         HashMap<String,String> variables = new HashMap<>();
         String contentDisplay = event.getMessage().getContentDisplay();
         String command = contentDisplay.split(" ")[0];
+        LocalDateTime now = LocalDateTime.now();
 
         variables.put("${name}",event.getAuthor().getName());
         variables.put("${version}",VERSION);
-        variables.put("${time}",LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_TIME).substring(0,8));
-        variables.put("${date}",LocalDateTime.now().format(DateTimeFormatter.ISO_LOCAL_DATE));
+        variables.put("${date}",now.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        variables.put("${time}",now.format(DateTimeFormatter.ISO_LOCAL_TIME).substring(0,8));
         // Variables from properties (do we map all ?")
-        variables.put("${designertag}",prop.getProperty("designer_tagname"));
-        variables.put("${designer}",prop.getProperty("designer_name"));
+        variables.put("${designer_tagname}",prop.getProperty("designer_tagname"));
+        variables.put("${designer_name}", prop.getProperty("designer_tagname").split("#")[0]);
+
+        variables.put("${admin_tagnames}", prop.getProperty("admin_tagnames"));
+        variables.put("${admin_names}", Arrays.stream(prop.getProperty("admin_tagnames").split(";")).map(x-> x.split("#")[0]).sorted().collect(Collectors.toList()).toString());
+
         variables.put("${botname}",prop.getProperty("botname"));
         variables.put("${content}", contentDisplay.replaceFirst(command,""));
         variables.put("${command}",command);
+        variables.put("${start_date}",dateStart.format(DateTimeFormatter.ISO_LOCAL_DATE));
+        variables.put("${start_time}",dateStart.format(DateTimeFormatter.ISO_LOCAL_DATE).substring(0,8));
+        variables.put("${start_days}",String.valueOf(ChronoUnit.DAYS.between(dateStart, now)));
+        variables.put("${start_hours}",String.valueOf(ChronoUnit.HOURS.between(dateStart, now)%24));
+        variables.put("${start_minutes}",String.valueOf(ChronoUnit.MINUTES.between(dateStart, now)%60));
+        variables.put("${start_seconds}",String.valueOf(ChronoUnit.SECONDS.between(dateStart, now)%60));
         return variables;
     }
 
@@ -263,6 +226,12 @@ public class Nuage extends ListenerAdapter {
     }
 
     private boolean isDesigner(User author) {
-        return (prop.getProperty("designer_tagname").equals(author.getAsTag()));
+        // Match a author tag set in properties
+        return prop.getProperty("designer_tagname").toLowerCase().equals(author.getAsTag().toLowerCase());
+    }
+
+    private boolean isAdmin(User author) {
+        // Match a admin tag list set in properties
+        return Arrays.stream(prop.getProperty("admin_list").split(";")).anyMatch(x-> x.toLowerCase().equals(author.getAsTag().toLowerCase()));
     }
 }
