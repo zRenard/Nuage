@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<commands>
+    <query>
+        <regexpr>[(hello)|(salut)] [@]*${botname}</regexpr>
+        <list_response>
+            <reponse>
+                <to_tagname>${designertag}</to_tagname>
+                <text>Salut ${name} ! Mon concepteur d'amour !</text>
+            </reponse>
+            <reponse>
+                <to_tagname>*</to_tagname>
+                <text>Hello ${name} ça va ?</text>
+            </reponse>
+        </list_response>
+    </query>
+</commands>
