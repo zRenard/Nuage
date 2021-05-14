@@ -17,22 +17,16 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Function;
+import java.util.logging.FileHandler;
+import java.util.logging.Logger;
+import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
 
-// TODO : Quote with images
-// TODO : Reminder (anniversaire ou juste chrono ?)
-// TODO : Simple command with basic parameters in responses
-// TODO : Complex command with parameters in input ?
-// TODO : Weather as an example of complex command ?
-// TODO : Move stats to simple command
-// TODO : Add list of bad words (simple list of regexpr)
-// TODO : Merge all data in one xml file ?
-// TODO :         // Add simple command
-//        // !add command xxx xxxxxxx
-//        // Add quote
-//        // !add quote xxxxx
 public class Nuage extends ListenerAdapter {
+    public static final String ADMIN_TAGNAMES = "admin_tagnames";
     private static final String VERSION = "Alpha (et ça veut pas dire supérieure)";
+    public static final String DESIGNER_TAGNAME = "designer_tagname";
+    public static final String BOTNAME = "botname";
     private static List<String> quotes;
     private static HashMap<String,String> simpleCommands;
     //private static Map<String,Map> query; ?
@@ -41,35 +35,40 @@ public class Nuage extends ListenerAdapter {
     private static final ArrayList<ArrayList<String>> responsesApplication =
             new ArrayList<>(List.of(new ArrayList<>(List.of("zRenard#0668","*"))));
     private static final ArrayList<ArrayList<String>> responses =
-            new ArrayList<>(List.of(new ArrayList<>(List.of("Salut ${name} ! Mon concepteur d'amour","Hello ${name} ça va ?"))));
+            new ArrayList<>(List.of(new ArrayList<>(List.of("Salut ${name} ! Mon concepteur d'Amour","Hello ${name} ça va ?"))));
     private static Properties prop = new Properties();
     private int statsQuotes = 0;
-    private static LocalDateTime dateStart = LocalDateTime.now();
-    private static Random ran = new Random();
+    private static final LocalDateTime dateStart = LocalDateTime.now();
+    private static final Random ran = new java.security.SecureRandom();
     private static String token;
+    private static Logger logger;
 
     public static void main(String[] args) throws LoginException {
-        // Load Properties
-        prop = loadProperties("settings.properties");
+        // Setup Logger
+        try {
+            logger = Logger.getLogger(Nuage.class.getName());
+            var fileTxt = new FileHandler("logging.txt");
+            fileTxt.setFormatter(new SimpleFormatter());
+            logger.addHandler(fileTxt);
+        } catch (IOException e) {
+            e.printStackTrace();
+            System.exit(2);
+        }
+
+        // Load Properties, Quotes, commands, and answer/responses
+        loadSettings();
 
         // Load token
         List<String> tokenData = loadFile(prop.getProperty("token"));
         if (tokenData.isEmpty()) {
-            System.err.println("No token file found : "+prop.getProperty("token")+ " or empty");
+            logger.severe("No token file found : "+prop.getProperty("token")+ " or empty");
             System.exit(1);
         } else {
             token = tokenData.get(0); // First line
         }
 
         // Join
-        JDABuilder builder = JDABuilder.createDefault(token);
-
-        // Load Quotes
-        quotes = loadFile(prop.getProperty("quote_filename"));
-        // Load simple commands
-        simpleCommands = new HashMap<>((Map) loadProperties(prop.getProperty("simple_command_filename")));
-        // Load complex commands
-        loadQueriesFile(prop.getProperty("complex_command_filename"));
+        var builder = JDABuilder.createDefault(token);
 
         // Disable cache for member activities (streaming/games/spotify)
         builder.disableCache(CacheFlag.ACTIVITY);
@@ -82,8 +81,6 @@ public class Nuage extends ListenerAdapter {
 
     @Override
     public void onMessageReceived(MessageReceivedEvent event) {
-        LocalDateTime now = LocalDateTime.now();
-
         // ignore bots message
         if(event.getAuthor().isBot()) {
             return;
@@ -91,9 +88,9 @@ public class Nuage extends ListenerAdapter {
 
         // Basic logging
         String messageContent = event.getMessage().getContentDisplay();
-        System.out.println("Message from "+ event.getAuthor().getAsTag() + ":" + messageContent);
+        logger.info(() -> "Message from "+ event.getAuthor().getAsTag() + ":" + messageContent);
 
-        // Compute variable that can be used in simplecommand
+        // Compute variable that can be used in simple command
         HashMap<String,String> localVariables = loadVariable(event);
         localVariables.put("${listofcommand}",simpleCommands.keySet().stream().sorted().collect(Collectors.toList()).toString());
 
@@ -135,54 +132,66 @@ public class Nuage extends ListenerAdapter {
         }
 
         if (messageContent.equals("!quote")||messageContent.equals("!cite")) {
-            if (quotes.isEmpty()) {
-                event.getMessage().reply("Oauis bah tu est gentil "+event.getAuthor().getName() +" mais pas encore !").queue();
-            } else {
-                statsQuotes += 1;
-                event.getChannel().sendMessage(quotes.get(ran.nextInt(quotes.size()))).queue();
-            }
-            return;
+            quote(event);
         }
 
         if (messageContent.equals("!reload")) {
-            if (isDesigner(event.getAuthor())|| isAdmin(event.getAuthor())) {
-                prop = loadProperties("settings.properties");
-                quotes = loadFile(prop.getProperty("quote_filename"));
-                loadQueriesFile(prop.getProperty("complex_command_filename"));
-                simpleCommands = new HashMap<String, String>((Map) loadProperties(prop.getProperty("simple_command_filename")));
-                event.getMessage().reply(quotes.size() + " citations rechargées\n" +
-                        simpleCommands.size() + " commandes rechargées\n"+
-                        queries.size() + " responses rechargées"
-                ).queue();
-                return;
-            } else {
-                event.getMessage().reply("Je te connait pas toi, tu n'est pas mon papa "+event.getAuthor().getName() +" !").queue();
-                return;
-            }
+            reload(event);
         }
 
         if (messageContent.equals("!stats")) {
-            String response = "Je suis en version "+ VERSION+"\n";
-            response = response.concat("Je me suis demarer "+ dateStart.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)+"\n");
-            event.getMessage().reply(response + "Il y a "+quotes.size() +" citations," +
-                    " et on me les a demande " + statsQuotes + " fois").queue();
-            return;
+            stats(event);
         }
     }
 
-    private static void loadQueriesFile(String xmlFilename) {
+    private void quote(MessageReceivedEvent event) {
+        if (quotes.isEmpty()) {
+            event.getMessage().reply("Oauis bah tu est gentil "+ event.getAuthor().getName() +" mais pas encore !").queue();
+        } else {
+            statsQuotes += 1;
+            event.getChannel().sendMessage(quotes.get(ran.nextInt(quotes.size()))).queue();
+        }
+    }
 
+    private void stats(MessageReceivedEvent event) {
+        String response = "Je suis en version "+ VERSION+"\n";
+        response = response.concat("Je me suis démarré "+ dateStart.format(DateTimeFormatter.ISO_LOCAL_DATE_TIME)+"\n");
+        event.getMessage().reply(response + "Il y a "+quotes.size() +" citations," +
+                " et on me les a demande " + statsQuotes + " fois").queue();
+    }
+
+    private void reload(MessageReceivedEvent event) {
+        if (isDesigner(event.getAuthor())|| isAdmin(event.getAuthor())) {
+            loadSettings();
+            event.getMessage().reply(quotes.size() + " citations rechargées\n" +
+                    simpleCommands.size() + " commandes rechargées\n"+
+                    queries.size() + " responses rechargées"
+            ).queue();
+        } else {
+            event.getMessage().reply("Je te connait pas toi, tu n'est pas mon papa "+ event.getAuthor().getName() +" !").queue();
+        }
+    }
+
+    private static void loadSettings() {
+        prop = loadProperties("settings.properties");
+        quotes = loadFile(prop.getProperty("quote_filename"));
+        loadQueriesFile(prop.getProperty("complex_command_filename"));
+        simpleCommands = new HashMap<>((Map) loadProperties(prop.getProperty("simple_command_filename")));
+    }
+
+    private static void loadQueriesFile(String xmlFilename) {
+        // Load complex queries/responses from xml file
     }
 
     private static Properties loadProperties(String filename) {
-        Properties prop = new Properties();
+        var prop = new Properties();
         // Load Properties
         try (InputStream input = new FileInputStream(filename)) {
             prop.load(new InputStreamReader(input, StandardCharsets.UTF_8));
         } catch (FileNotFoundException e) {
-            System.err.println("ERROR : File not found "+filename);
+            logger.severe("ERROR : File not found "+filename);
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            logger.severe(e.getMessage());
         }
         return prop;
     }
@@ -191,20 +200,20 @@ public class Nuage extends ListenerAdapter {
         HashMap<String,String> variables = new HashMap<>();
         String contentDisplay = event.getMessage().getContentDisplay();
         String command = contentDisplay.split(" ")[0];
-        LocalDateTime now = LocalDateTime.now();
+        var now = LocalDateTime.now();
 
         variables.put("${name}",event.getAuthor().getName());
         variables.put("${version}",VERSION);
         variables.put("${date}",now.format(DateTimeFormatter.ISO_LOCAL_DATE));
         variables.put("${time}",now.format(DateTimeFormatter.ISO_LOCAL_TIME).substring(0,8));
         // Variables from properties (do we map all ?")
-        variables.put("${designer_tagname}",prop.getProperty("designer_tagname"));
-        variables.put("${designer_name}", prop.getProperty("designer_tagname").split("#")[0]);
+        variables.put("${designer_tagname}" , prop.getProperty(DESIGNER_TAGNAME));
+        variables.put("${designer_name}", prop.getProperty(DESIGNER_TAGNAME).split("#")[0]);
 
-        variables.put("${admin_tagnames}", prop.getProperty("admin_tagnames"));
-        variables.put("${admin_names}", Arrays.stream(prop.getProperty("admin_tagnames").split(";")).map(x-> x.split("#")[0]).sorted().collect(Collectors.toList()).toString());
+        variables.put("${admin_tagnames}", prop.getProperty(ADMIN_TAGNAMES));
+        variables.put("${admin_names}", Arrays.stream(prop.getProperty(ADMIN_TAGNAMES).split(";")).map(x-> x.split("#")[0]).sorted().collect(Collectors.toList()).toString());
 
-        variables.put("${botname}",prop.getProperty("botname"));
+        variables.put("${botname}",prop.getProperty(BOTNAME));
         variables.put("${content}", contentDisplay.replaceFirst(command,""));
         variables.put("${command}",command);
         variables.put("${start_date}",dateStart.format(DateTimeFormatter.ISO_LOCAL_DATE));
@@ -220,18 +229,18 @@ public class Nuage extends ListenerAdapter {
         try {
             return Files.readAllLines(Paths.get(fileName));
         } catch (IOException e) {
-            System.err.println(e.getMessage());
+            logger.severe(e.getMessage());
         }
         return Collections.emptyList();
     }
 
     private boolean isDesigner(User author) {
         // Match a author tag set in properties
-        return prop.getProperty("designer_tagname").toLowerCase().equals(author.getAsTag().toLowerCase());
+        return prop.getProperty(DESIGNER_TAGNAME).equalsIgnoreCase(author.getAsTag());
     }
 
     private boolean isAdmin(User author) {
         // Match a admin tag list set in properties
-        return Arrays.stream(prop.getProperty("admin_list").split(";")).anyMatch(x-> x.toLowerCase().equals(author.getAsTag().toLowerCase()));
+        return Arrays.stream(prop.getProperty(ADMIN_TAGNAMES).split(";")).anyMatch(x-> x.equalsIgnoreCase(author.getAsTag()));
     }
 }
