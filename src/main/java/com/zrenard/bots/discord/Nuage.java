@@ -51,7 +51,6 @@ public class Nuage extends ListenerAdapter {
             fileTxt.setFormatter(new SimpleFormatter());
             logger.addHandler(fileTxt);
         } catch (IOException e) {
-            e.printStackTrace();
             System.exit(2);
         }
 
