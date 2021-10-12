@@ -1,1 +1,4 @@
 /token.txt
+/.gradle/
+/.idea/
+/logging.txt

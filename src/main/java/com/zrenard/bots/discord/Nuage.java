@@ -1,12 +1,12 @@
 package com.zrenard.bots.discord;
 
 import net.dv8tion.jda.api.JDABuilder;
+import net.dv8tion.jda.api.Permission;
 import net.dv8tion.jda.api.entities.User;
 import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
-
 import javax.security.auth.login.LoginException;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -21,6 +21,7 @@ import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 public class Nuage extends ListenerAdapter {
     public static final String ADMIN_TAGNAMES = "admin_tagnames";
@@ -28,6 +29,11 @@ public class Nuage extends ListenerAdapter {
     public static final String DESIGNER_TAGNAME = "designer_tagname";
     public static final String BOTNAME = "botname";
     private static List<String> quotes;
+    private static List<String> magic8ballResponses =
+            new ArrayList<>(List.of("It is certain","Outlook good","You may rely on it","Ask again later",
+                    "Concentrate and ask again","Reply hazy, try again","My reply is no",
+                    "My sources say no"));
+    private static List<String> cursewords;
     private static HashMap<String,String> simpleCommands;
     //private static Map<String,Map> query; ?
     private static final ArrayList<String> queries =
@@ -48,8 +54,12 @@ public class Nuage extends ListenerAdapter {
         try {
             logger = Logger.getLogger(Nuage.class.getName());
             var fileTxt = new FileHandler("logging.txt");
+            var fileHTML = new FileHandler("logging.html");
+
             fileTxt.setFormatter(new SimpleFormatter());
             logger.addHandler(fileTxt);
+            fileHTML.setFormatter(new HtmlLogFormatter());
+            logger.addHandler(fileHTML);
         } catch (IOException e) {
             System.exit(2);
         }
@@ -86,8 +96,25 @@ public class Nuage extends ListenerAdapter {
         }
 
         // Basic logging
-        String messageContent = event.getMessage().getContentDisplay();
+        String messageContent = event.getMessage().getContentDisplay().trim();
         logger.info(() -> "Message from "+ event.getAuthor().getAsTag() + ":" + messageContent);
+
+        // Filter cursewords
+        for (String regexpBW : cursewords) {
+            if (messageContent.toLowerCase().matches(regexpBW.toLowerCase())) {
+                if(!event.getGuild().getSelfMember().hasPermission(Permission.MESSAGE_MANAGE)) {
+                    logger.warning("No permission to delete messages in #" + event.getChannel().getName());
+                    return;
+                }
+                event.getMessage().delete().queue(
+                        done->
+                                event.getChannel().sendMessage(event.getAuthor().getAsMention() + ", you cannot say that!").queue()
+                        ,error->{
+                            logger.warning("Error deleting message with curse word");
+                            logger.warning(error.getMessage());
+                });
+            }
+        }
 
         // Compute variable that can be used in simple command
         HashMap<String,String> localVariables = loadVariable(event);
@@ -130,6 +157,10 @@ public class Nuage extends ListenerAdapter {
             }
         }
 
+        if (messageContent.equals("!magic8")) {
+            magic8ball(event,messageContent.split(" ")[1].trim());
+        }
+
         if (messageContent.equals("!quote")||messageContent.equals("!cite")) {
             quote(event);
         }
@@ -145,10 +176,18 @@ public class Nuage extends ListenerAdapter {
 
     private void quote(MessageReceivedEvent event) {
         if (quotes.isEmpty()) {
-            event.getMessage().reply("Oauis bah tu est gentil "+ event.getAuthor().getName() +" mais pas encore !").queue();
+            event.getMessage().reply("Oauis bah tu es gentil "+ event.getAuthor().getName() +" mais pas encore !").queue();
         } else {
             statsQuotes += 1;
             event.getChannel().sendMessage(quotes.get(ran.nextInt(quotes.size()))).queue();
+        }
+    }
+
+    private void magic8ball(MessageReceivedEvent event, String question) {
+        if (question.isEmpty()) {
+            event.getMessage().reply("Oauis bah tu es gentil "+ event.getAuthor().getName() +" comment tu veux que je reponde si tu pose pas de question !").queue();
+        } else {
+            event.getMessage().reply("Alors pour "+ question + " la réponse est : " + magic8ballResponses.get(ran.nextInt(magic8ballResponses.size()))).queue();
         }
     }
 
@@ -167,19 +206,25 @@ public class Nuage extends ListenerAdapter {
                     queries.size() + " responses rechargées"
             ).queue();
         } else {
-            event.getMessage().reply("Je te connait pas toi, tu n'est pas mon papa "+ event.getAuthor().getName() +" !").queue();
+            event.getMessage().reply("Je te connait pas toi, tu n'es pas mon papa "+ event.getAuthor().getName() +" !").queue();
         }
     }
 
     private static void loadSettings() {
         prop = loadProperties("settings.properties");
         quotes = loadFile(prop.getProperty("quote_filename"));
+        cursewords = Stream.of(prop.getProperty("crusewords").split(";")).collect(Collectors.toList());
         loadQueriesFile(prop.getProperty("complex_command_filename"));
         simpleCommands = new HashMap<>((Map) loadProperties(prop.getProperty("simple_command_filename")));
     }
 
     private static void loadQueriesFile(String xmlFilename) {
         // Load complex queries/responses from xml file
+        // queries
+
+        // responsesApplication
+
+        // responses
     }
 
     private static Properties loadProperties(String filename) {
