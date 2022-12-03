@@ -39,8 +39,4 @@ jar {
     }
 }
 
-application {
-    mainClassName = 'com.zrenard.bots.discord.Nuage'
-}
-
 compileJava.options.encoding = 'UTF-8'
