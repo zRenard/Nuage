@@ -1,12 +1,10 @@
 plugins {
     id 'java'
-    id 'application'
-    id "org.sonarqube" version "3.2.0"
+    id "org.sonarqube" version "3.4.0.2513"
 }
 
 group 'com.zrenard'
 version '1.0-SNAPSHOT'
-
 
 repositories {
     mavenCentral() // for transitive dependencies
