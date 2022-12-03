@@ -7,17 +7,18 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
-import javax.security.auth.login.LoginException;
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Function;
 import java.util.logging.FileHandler;
+import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
@@ -28,6 +29,7 @@ public class Nuage extends ListenerAdapter {
     private static final String VERSION = "Alpha (et ça veut pas dire supérieure)";
     public static final String DESIGNER_TAGNAME = "designer_tagname";
     public static final String BOTNAME = "botname";
+    public static final String LOCALE = "fra";
     private static List<String> quotes;
     private static List<String> magic8ballResponses =
             new ArrayList<>(List.of("It is certain","Outlook good","You may rely on it","Ask again later",
@@ -49,7 +51,7 @@ public class Nuage extends ListenerAdapter {
     private static String token;
     private static Logger logger;
 
-    public static void main(String[] args) throws LoginException {
+    public static void main(String[] args) {
         // Setup Logger
         try {
             logger = Logger.getLogger(Nuage.class.getName());
@@ -80,6 +82,7 @@ public class Nuage extends ListenerAdapter {
         var builder = JDABuilder.createDefault(token);
 
         // Disable cache for member activities (streaming/games/spotify)
+        builder.enableIntents(GatewayIntent.MESSAGE_CONTENT);
         builder.disableCache(CacheFlag.ACTIVITY);
         builder.disableCache(CacheFlag.MEMBER_OVERRIDES, CacheFlag.VOICE_STATE);
         // Disable presence updates and typing events
@@ -96,7 +99,7 @@ public class Nuage extends ListenerAdapter {
         }
 
         // Basic logging
-        String messageContent = event.getMessage().getContentDisplay().trim();
+        String messageContent = event.getMessage().getContentDisplay().trim().toLowerCase();
         logger.info(() -> "Message from "+ event.getAuthor().getAsTag() + ":" + messageContent);
 
         // Filter cursewords
@@ -118,7 +121,7 @@ public class Nuage extends ListenerAdapter {
 
         // Compute variable that can be used in simple command
         HashMap<String,String> localVariables = loadVariable(event);
-        localVariables.put("${listofcommand}",simpleCommands.keySet().stream().sorted().collect(Collectors.toList()).toString());
+        localVariables.put("${listofcommand}", simpleCommands.keySet().stream().sorted().toList().toString());
 
         // Replace variable in simpleCommand
         Map<String, String> analyzedSimpleCommands = simpleCommands.entrySet().stream()
@@ -157,8 +160,8 @@ public class Nuage extends ListenerAdapter {
             }
         }
 
-        if (messageContent.equals("!magic8")) {
-            magic8ball(event,messageContent.split(" ")[1].trim());
+        if (messageContent.startsWith("!magic8")) {
+            magic8ball(event,messageContent);
         }
 
         if (messageContent.equals("!quote")||messageContent.equals("!cite")) {
@@ -167,9 +170,18 @@ public class Nuage extends ListenerAdapter {
 
         if (messageContent.equals("!reload")) {
             reload(event);
+            stats(event);
         }
 
         if (messageContent.equals("!stats")) {
+            // @TODO add same data as reload
+            //6 citations rechargées
+            //29 commandes rechargées
+            //1 responses rechargées
+            // instead of
+            // Je suis en version Alpha (et ça veut pas dire supérieure)
+            //Je me suis démarré 2022-06-01T14:33:44.5134119
+            //Il y a 6 citations, et on me les a demande 0 fois
             stats(event);
         }
     }
@@ -183,11 +195,12 @@ public class Nuage extends ListenerAdapter {
         }
     }
 
-    private void magic8ball(MessageReceivedEvent event, String question) {
-        if (question.isEmpty()) {
-            event.getMessage().reply("Oauis bah tu es gentil "+ event.getAuthor().getName() +" comment tu veux que je reponde si tu pose pas de question !").queue();
+    private void magic8ball(MessageReceivedEvent event, String messageContent) {
+        String question = (Arrays.stream(messageContent.split(" ",2)).count()==2) ? messageContent.split(" ",2)[1].trim(): "";
+        if (question.equals("")) {
+            event.getMessage().reply("Oauis bah tu es gentil "+ event.getAuthor().getName() +" comment tu veux que je respond si tu pose pas de question !").queue();
         } else {
-            event.getMessage().reply("Alors pour "+ question + " la réponse est : " + magic8ballResponses.get(ran.nextInt(magic8ballResponses.size()))).queue();
+            event.getMessage().reply("Alors pour la question : \""+ question + "\" la réponse est : " + magic8ballResponses.get(ran.nextInt(magic8ballResponses.size()))).queue();
         }
     }
 
@@ -219,12 +232,13 @@ public class Nuage extends ListenerAdapter {
     }
 
     private static void loadQueriesFile(String xmlFilename) {
-        // Load complex queries/responses from xml file
+        // @TODO Load complex queries/responses from xml file
         // queries
-
+        // xml : regexpr
         // responsesApplication
-
+        // xml : to_tagname
         // responses
+        // xml : text
     }
 
     private static Properties loadProperties(String filename) {
@@ -244,18 +258,20 @@ public class Nuage extends ListenerAdapter {
         HashMap<String,String> variables = new HashMap<>();
         String contentDisplay = event.getMessage().getContentDisplay();
         String command = contentDisplay.split(" ")[0];
-        var now = LocalDateTime.now();
-
+        Locale.setDefault(new Locale("fre"));
+        LocalDateTime now = LocalDateTime.now();
         variables.put("${name}",event.getAuthor().getName());
         variables.put("${version}",VERSION);
-        variables.put("${date}",now.format(DateTimeFormatter.ISO_LOCAL_DATE));
-        variables.put("${time}",now.format(DateTimeFormatter.ISO_LOCAL_TIME).substring(0,8));
+        logger.info(now.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM).withLocale(Locale.getDefault())));
+        logger.info(now.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.MEDIUM).withLocale(Locale.getDefault())));
+        variables.put("${date}",now.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.SHORT).withLocale(Locale.getDefault())));
+        variables.put("${time}",now.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(Locale.getDefault())));
         // Variables from properties (do we map all ?")
         variables.put("${designer_tagname}" , prop.getProperty(DESIGNER_TAGNAME));
         variables.put("${designer_name}", prop.getProperty(DESIGNER_TAGNAME).split("#")[0]);
 
         variables.put("${admin_tagnames}", prop.getProperty(ADMIN_TAGNAMES));
-        variables.put("${admin_names}", Arrays.stream(prop.getProperty(ADMIN_TAGNAMES).split(";")).map(x-> x.split("#")[0]).sorted().collect(Collectors.toList()).toString());
+        variables.put("${admin_names}", Arrays.stream(prop.getProperty(ADMIN_TAGNAMES).split(";")).map(x -> x.split("#")[0]).sorted().toList().toString());
 
         variables.put("${botname}",prop.getProperty(BOTNAME));
         variables.put("${content}", contentDisplay.replaceFirst(command,""));

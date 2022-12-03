@@ -13,4 +13,17 @@
             </reponse>
         </list_response>
     </query>
+    <query>
+        <regexpr>[(top)|(génial)] [@]*${botname}</regexpr>
+        <list_response>
+            <reponse>
+                <to_tagname>${designertag}</to_tagname>
+                <text>Bah oui c'est toi qui m'a crée</text>
+            </reponse>
+            <reponse>
+                <to_tagname>*</to_tagname>
+                <text>Merci merci je sais, je suis génial !</text>
+            </reponse>
+        </list_response>
+    </query>
 </commands>
