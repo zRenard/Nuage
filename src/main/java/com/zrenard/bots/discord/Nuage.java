@@ -162,6 +162,11 @@ public class Nuage extends ListenerAdapter {
             magic8ball(event,messageContent);
         }
 
+        if (messageContent.equals("!quit")) {
+            quit(event);
+            System.exit(0);
+        }
+
         if (messageContent.equals("!quote")||messageContent.equals("!cite")) {
             quote(event);
         }
@@ -209,6 +214,13 @@ public class Nuage extends ListenerAdapter {
                 " et on me les a demande " + statsQuotes + " fois").queue();
     }
 
+    private void quit(MessageReceivedEvent event) {
+        if (isDesigner(event.getAuthor())|| isAdmin(event.getAuthor())) {
+            event.getMessage().reply("Ha bah d'accord .... je me casse alors.\n").queue();
+        } else {
+            event.getMessage().reply("Je te connait pas toi, tu n'es pas autorisé à faire cette commande !").queue();
+        }
+    }
     private void reload(MessageReceivedEvent event) {
         if (isDesigner(event.getAuthor())|| isAdmin(event.getAuthor())) {
             loadSettings();
