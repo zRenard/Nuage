@@ -7,6 +7,7 @@ import net.dv8tion.jda.api.events.message.MessageReceivedEvent;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.requests.GatewayIntent;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
@@ -18,7 +19,6 @@ import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Function;
 import java.util.logging.FileHandler;
-import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
 import java.util.stream.Collectors;
@@ -29,9 +29,8 @@ public class Nuage extends ListenerAdapter {
     private static final String VERSION = "Alpha (et ça veut pas dire supérieure)";
     public static final String DESIGNER_TAGNAME = "designer_tagname";
     public static final String BOTNAME = "botname";
-    public static final String LOCALE = "fra";
     private static List<String> quotes;
-    private static List<String> magic8ballResponses =
+    private static final List<String> magic8ballResponses =
             new ArrayList<>(List.of("It is certain","Outlook good","You may rely on it","Ask again later",
                     "Concentrate and ask again","Reply hazy, try again","My reply is no",
                     "My sources say no"));
@@ -91,7 +90,6 @@ public class Nuage extends ListenerAdapter {
         builder.build();
     }
 
-    @Override
     public void onMessageReceived(MessageReceivedEvent event) {
         // ignore bots message
         if(event.getAuthor().isBot()) {
@@ -226,7 +224,7 @@ public class Nuage extends ListenerAdapter {
     private static void loadSettings() {
         prop = loadProperties("settings.properties");
         quotes = loadFile(prop.getProperty("quote_filename"));
-        cursewords = Stream.of(prop.getProperty("crusewords").split(";")).collect(Collectors.toList());
+        cursewords = Stream.of(prop.getProperty("crusewords").split(";")).toList();
         loadQueriesFile(prop.getProperty("complex_command_filename"));
         simpleCommands = new HashMap<>((Map) loadProperties(prop.getProperty("simple_command_filename")));
     }
@@ -295,12 +293,12 @@ public class Nuage extends ListenerAdapter {
     }
 
     private boolean isDesigner(User author) {
-        // Match a author tag set in properties
+        // Match an author tag set in properties
         return prop.getProperty(DESIGNER_TAGNAME).equalsIgnoreCase(author.getAsTag());
     }
 
     private boolean isAdmin(User author) {
-        // Match a admin tag list set in properties
+        // Match an admin tag list set in properties
         return Arrays.stream(prop.getProperty(ADMIN_TAGNAMES).split(";")).anyMatch(x-> x.equalsIgnoreCase(author.getAsTag()));
     }
 }
