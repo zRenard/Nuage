@@ -1,0 +1,12 @@
+{
+    {
+        "java.compile.nullAnalysis.mode": "automatic",
+        "java.configuration.runtimes": [
+            {
+                "name": "JavaSE-21",
+                "path": "C:\\opt\\openjdk-21.0.3.0.9",
+                "default": true
+            }
+        ]
+    }
+}
