@@ -64,7 +64,7 @@ jobs:
     #    uses a compiled language
     
     - name: Gradle Build Action
-      uses: gradle/gradle-build-action@v3.5.0
+      uses: gradle/gradle-build-action@093dfe9d598ec5a42246855d09b49dc76803c005
       with:
         arguments: build
     - name: Perform CodeQL Analysis
