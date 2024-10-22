@@ -1,0 +1,12 @@
+Hello @${botname}|${designertag}|Salut ${name} ! Mon concepteur d'amour
+Hello @${botname}|*|Hello ${name} ça va ?
+Hello ${botname}|*|Hello ${name} ça va ?
+ça va et toi @${botname} ?|*|ça roule, ça code, la vie quoi
+ça va et toi ${botname} ?|*|ça roule, ça code, la vie quoi
+ça va bien @${botname} ?|${designertag}|Je te rappel amicalement que tu m'a conçu\nTu devrait être au courant !
+ça va bien @${botname} ?|*|ça roule, ça code, la vie quoi
+ça va @${botname} merci|*|cool moi pareil, au chaud dans ma boite, mais pas trop de soleil :(\nJe vais me plainder à ${designer} !
+cool @${botname}!|*|De rien ! (heuuu j'ai fait quoi ?)
+cool @${botname} !|*|De rien ! (heuuu j'ai fait quoi ?)
+cool @${botname}|*|De rien ! (heuuu j'ai fait quoi ?)
+top @${botname}!|*|Merci merci je sait, je suis génial !
