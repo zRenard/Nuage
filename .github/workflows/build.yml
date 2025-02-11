@@ -5,6 +5,7 @@ on:
       - master
   pull_request:
     types: [opened, synchronize, reopened]
+
 jobs:
   build:
     name: Build
@@ -22,7 +23,7 @@ jobs:
         uses: actions/setup-java@v4.7.0
         with:
           java-version: 11
-          distribution: 'zulu'
+          distribution: 'zulu'  # Specify the distribution here
       - name: Cache SonarCloud packages
         uses: actions/cache@v4
         with:
