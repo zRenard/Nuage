@@ -28,4 +28,4 @@ jobs:
     - name: Make gradlew executable
       run: chmod +x ./gradlew
     - name: Gradle Build Action
-      uses: gradle/gradle-build-action@v3.5.0
+      uses: gradle/actions/setup-gradle@v4
