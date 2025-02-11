@@ -22,8 +22,8 @@ jobs:
       - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          java-version: 1.8
-          distribution: 'temurin' # Specify the distribution here
+          java-version: 21
+          distribution: 'zulu' # Specify the distribution here
 
       - name: Download Fortify ScanCentral Client
         uses: fortify/gha-setup-scancentral-client@f4282a5ec53f68d2cfb4d475e87a488240527d4f
