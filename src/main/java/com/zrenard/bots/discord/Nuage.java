@@ -87,7 +87,7 @@ public class Nuage extends ListenerAdapter {
         // Load token
         List<String> tokenData = loadFile(prop.getProperty("token"));
         if (tokenData.isEmpty()) {
-            logger.severe("No token file found : " + prop.getProperty("token") + " or empty");
+            logger.severe(() -> String.format("No token file found : %s or empty", prop.getProperty("token")));
             System.exit(1);
         } else {
             token = tokenData.get(0); // First line
