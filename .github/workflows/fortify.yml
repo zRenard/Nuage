@@ -23,17 +23,16 @@ jobs:
         uses: actions/setup-java@v4
         with:
           java-version: 21
-          distribution: 'zulu' # Specify the distribution here
-      - name: Gradle Build Action
+          distribution: 'zulu'
+
+      - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-        
+
       - name: Download Fortify ScanCentral Client
         uses: fortify/gha-setup-scancentral-client@f4282a5ec53f68d2cfb4d475e87a488240527d4f
 
       - name: Package Code + Dependencies
-        run: scancentral package $PACKAGE_OPTS -o package.zip
-        env:
-          PACKAGE_OPTS: "-bt mvn"
+        run: scancentral package -bt gradle -o package.zip
 
       - name: Download Fortify on Demand Universal CI Tool
         uses: fortify/gha-setup-fod-uploader@e633769408318bd54b9ab2a7f62bf1f39d0df835
