@@ -24,7 +24,9 @@ jobs:
         with:
           java-version: 21
           distribution: 'zulu' # Specify the distribution here
-
+      - name: Gradle Build Action
+        uses: gradle/actions/setup-gradle@v4
+        
       - name: Download Fortify ScanCentral Client
         uses: fortify/gha-setup-scancentral-client@f4282a5ec53f68d2cfb4d475e87a488240527d4f
 
