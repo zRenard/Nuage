@@ -33,3 +33,5 @@ jobs:
 
       - name: Fortify AST Scan
         uses: fortify/github-action@v1.0.0
+        with:
+          sast-scan: true
