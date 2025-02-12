@@ -32,6 +32,6 @@ jobs:
         uses: gradle/actions/setup-gradle@v4
 
       - name: Fortify AST Scan
-        uses: fortify/github-action@v1.0.0
+        uses: fortify/github-action@v1.7.0
         with:
           sast-scan: true
