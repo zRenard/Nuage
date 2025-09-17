@@ -5,6 +5,6 @@
     "schedule": "after 10pm on sunday"
   },
   "extends": [
-    "config:base"
+    "config:recommended"
   ]
 }
