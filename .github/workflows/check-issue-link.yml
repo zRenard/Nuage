@@ -1,0 +1,44 @@
+
+name: Require Valid GitHub Issue Link in PR
+
+on:
+  pull_request:
+    types: [opened, edited, synchronize]
+
+jobs:
+  check-issue-link:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate PR description for GitHub issue links
+        id: validate-links
+        run: |
+          PR_BODY="${{ github.event.pull_request.body }}"
+
+          # Extract all issue numbers from PR description
+          ISSUE_NUMBERS=$(echo "$PR_BODY" | grep -oE '#[0-9]+' | tr -d '#')
+
+          if [ -z "$ISSUE_NUMBERS" ]; then
+            echo "❌ No GitHub issue link found in PR description."
+            exit 1
+          fi
+
+          echo "Found issue numbers: $ISSUE_NUMBERS"
+          echo "issue_numbers=$ISSUE_NUMBERS" >> $GITHUB_OUTPUT
+
+      - name: Check issue status via GitHub API
+        run: |
+          for ISSUE in ${{ steps.validate-links.outputs.issue_numbers }}; do
+            echo "Checking issue #$ISSUE..."
+            RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
+              -H "Accept: application/vnd.github.v3+json" \
+              https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE)
+
+            STATE=$(echo "$RESPONSE" | jq -r '.state')
+
+            if [ "$STATE" != "open" ]; then
+              echo "❌ Issue #$ISSUE is not open (state: $STATE)."
+              exit 1
+            fi
+
+            echo "✅ Issue #$ISSUE is open."
+          done
