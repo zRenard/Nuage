@@ -1,4 +1,4 @@
-name: Require Valid GitHub Issue Link in PR
+name: Require GitHub Issue Link in PR
 
 on:
   pull_request:
@@ -8,8 +8,13 @@ jobs:
   check-issue-link:
     runs-on: ubuntu-latest
     steps:
+      - name: Skip check for Renovate bot
+        if: ${{ github.actor == 'renovate[bot]' }}
+        run: |
+          echo "✅ Skipping issue link check for Renovate bot PR."
+          exit 0
+
       - name: Validate PR description for GitHub issue links
-        id: validate-links
         run: |
           PR_BODY="${{ github.event.pull_request.body }}"
 
@@ -18,14 +23,14 @@ jobs:
 
           if [ -z "$ISSUE_NUMBERS" ]; then
             echo "❌ No GitHub issue link found in PR description."
+            echo "Please include a reference like 'Fixes #123', 'Closes #123', or 'Resolves #123'."
             exit 1
           fi
-          echo "Found issue numbers: $ISSUE_NUMBERS"
-          echo "issue_numbers=$ISSUE_NUMBERS" >> $GITHUB_OUTPUT
 
-      - name: Check issue status via GitHub API
-        run: |
-          for ISSUE in ${{ steps.validate-links.outputs.issue_numbers }}; do
+          echo "Found issue numbers: $ISSUE_NUMBERS"
+
+          # Check each issue status via GitHub API
+          for ISSUE in $ISSUE_NUMBERS; do
             echo "Checking issue #$ISSUE..."
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github.v3+json" \
@@ -37,5 +42,6 @@ jobs:
               echo "❌ Issue #$ISSUE is not open (state: $STATE)."
               exit 1
             fi
+
             echo "✅ Issue #$ISSUE is open."
           done
