@@ -16,7 +16,17 @@ jobs:
 
       - name: Validate PR description for GitHub issue links
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
+          set -euo pipefail
+
+          # Ensure jq is available (runner ubuntu-latest usually has jq)
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "jq not found, attempting to install..."
+            sudo apt-get update -y
+            sudo apt-get install -y jq
+          fi
+
+          # Safely read PR body from the event JSON (avoids direct interpolation of the body into the script)
+          PR_BODY=$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")
 
           # Extract all issue numbers from PR description
           ISSUE_NUMBERS=$(echo "$PR_BODY" | grep -oE '#[0-9]+' | tr -d '#')
