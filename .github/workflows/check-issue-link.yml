@@ -16,7 +16,25 @@ jobs:
 
       - name: Validate PR description for GitHub issue links
         run: |
-          PR_BODY="${{ github.event.pull_request.body }}"
+          set -euo pipefail
+
+          # Ensure jq is available (runner ubuntu-latest usually has jq, but self-hosted runners may not)
+          # Note: This uses apt-get, which is appropriate since this job runs on ubuntu-latest
+          if ! command -v jq >/dev/null 2>&1; then
+            echo "jq not found, attempting to install..."
+            sudo apt-get update -y
+            sudo apt-get install -y jq
+          fi
+
+          # Verify GITHUB_EVENT_PATH is set and readable (should always be available in GitHub Actions)
+          if [ -z "${GITHUB_EVENT_PATH:-}" ] || [ ! -r "$GITHUB_EVENT_PATH" ]; then
+            echo "❌ GITHUB_EVENT_PATH is not set or not readable. This is unexpected in GitHub Actions."
+            echo "Please ensure this workflow is running in a valid GitHub Actions environment."
+            exit 1
+          fi
+
+          # Safely read PR body from the event JSON (avoids direct interpolation of the body into the script)
+          PR_BODY=$(jq -r '.pull_request.body // ""' "$GITHUB_EVENT_PATH")
 
           # Extract all issue numbers from PR description
           ISSUE_NUMBERS=$(echo "$PR_BODY" | grep -oE '#[0-9]+' | tr -d '#')
@@ -34,7 +52,7 @@ jobs:
             echo "Checking issue #$ISSUE..."
             RESPONSE=$(curl -s -H "Authorization: token ${{ secrets.GITHUB_TOKEN }}" \
               -H "Accept: application/vnd.github.v3+json" \
-              https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE)
+              "https://api.github.com/repos/${{ github.repository }}/issues/$ISSUE")
 
             STATE=$(echo "$RESPONSE" | jq -r '.state')
 
