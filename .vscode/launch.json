@@ -15,7 +15,9 @@
             "name": "Nuage",
             "request": "launch",
             "mainClass": "com.zrenard.bots.discord.Nuage",
-            "projectName": "Nuage"
+            "projectName": "Nuage",
+            "classPaths": [ "Nuage.main"],
+            "cwd": "${workspaceFolder}"
         }
     ]
 }
