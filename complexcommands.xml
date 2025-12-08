@@ -1,11 +1,24 @@
 <?xml version="1.0" encoding="UTF-8" standalone="no"?>
 <commands>
     <query>
-        <regexpr>[(hello)|(salut)] [@]*${botname}</regexpr>
+        <regexpr>salut (@)?${botname}</regexpr>
         <list_response>
             <reponse>
-                <to_tagname>${designertag}</to_tagname>
+                <to_tagname>${designer_tagname}</to_tagname>
                 <text>Salut ${name} ! Mon concepteur d'amour !</text>
+            </reponse>
+            <reponse>
+                <to_tagname>*</to_tagname>
+                <text>Salut ${name} ça va ?</text>
+            </reponse>
+        </list_response>
+    </query>
+    <query>
+        <regexpr>((hello)|(hi)) (@)?${botname}</regexpr>
+        <list_response>
+            <reponse>
+                <to_tagname>${designer_tagname}</to_tagname>
+                <text>Hello ${name} ! Mon concepteur d'amour !</text>
             </reponse>
             <reponse>
                 <to_tagname>*</to_tagname>
@@ -14,10 +27,10 @@
         </list_response>
     </query>
     <query>
-        <regexpr>[(top)|(génial)] [@]*${botname}</regexpr>
+        <regexpr>((top)|(génial)|(génial)) (@)?${botname}</regexpr>
         <list_response>
             <reponse>
-                <to_tagname>${designertag}</to_tagname>
+                <to_tagname>${designer_tagname}</to_tagname>
                 <text>Bah oui c'est toi qui m'a crée</text>
             </reponse>
             <reponse>
