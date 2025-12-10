@@ -1,0 +1,15 @@
+name: Enable auto-merge for Renovate PRs
+on:
+  pull_request_target:
+    types: [opened, labeled, edited, reopened, synchronize]
+
+jobs:
+  enable-automerge:
+    runs-on: ubuntu-latest
+    if: contains(github.event.pull_request.user.login, 'renovate') || github.actor == 'renovate[bot]'
+    steps:
+      - name: Enable auto-merge (via peter-evans action)
+        uses: peter-evans/enable-pull-request-automerge@v1
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          merge-method: squash
