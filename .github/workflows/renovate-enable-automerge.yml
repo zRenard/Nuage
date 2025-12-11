@@ -9,7 +9,7 @@ jobs:
     if: contains(github.event.pull_request.user.login, 'renovate') || github.actor == 'renovate[bot]'
     steps:
       - name: Enable auto-merge (via peter-evans action)
-        uses: peter-evans/enable-pull-request-automerge@v1
+        uses: peter-evans/enable-pull-request-automerge@v3
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
           merge-method: squash
