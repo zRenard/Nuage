@@ -8,6 +8,9 @@ jobs:
     runs-on: ubuntu-latest
     if: contains(github.event.pull_request.user.login, 'renovate') || github.actor == 'renovate[bot]'
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+    
       - name: Enable auto-merge (via peter-evans action)
         uses: peter-evans/enable-pull-request-automerge@v3
         with:
