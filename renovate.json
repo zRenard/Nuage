@@ -1,26 +1,21 @@
 {
-  "schedule": "before 5am every weekday",
+  "extends": ["config:recommended"],
+  "schedule": ["before 5am every weekday"],
   "lockFileMaintenance": {
     "enabled": true,
-    "schedule": "after 10pm on sunday"
+    "schedule": ["after 10pm on sunday"]
   },
-  "extends": [
-    "config:recommended"
-  ],
   "automerge": true,
   "automergeType": "pr",
-  "prNotPendingHours": 24,
+  "platformAutomerge": true,
   "packageRules": [
     {
-      "matchUpdateTypes": [
-        "major",
-        "minor",
-        "patch",
-        "pin",
-        "digest"
-      ],
-      "automerge": true,
-      "automergeType": "pr"
+      "matchUpdateTypes": ["minor", "patch", "pin", "digest"],
+      "automerge": true
+    },
+    {
+      "matchUpdateTypes": ["major"],
+      "automerge": false
     }
   ]
 }
